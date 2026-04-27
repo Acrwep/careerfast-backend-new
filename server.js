@@ -57,17 +57,6 @@ app.use((req, res) => {
   res.status(404).json({ message: "404 Not Found - Invalid route" });
 });
 
-// =======================
-// 🧩 MySQL Connection Test
-// =======================
-pool.getConnection((err, connection) => {
-  if (err) {
-    console.error("❌ Database connection failed:", err.message);
-  } else {
-    console.log("✅ MySQL database connected successfully!");
-    connection.release();
-  }
-});
 
 // =======================
 // 🚀 Start Server
