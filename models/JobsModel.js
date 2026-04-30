@@ -601,6 +601,19 @@ const JobsModel = {
         queryParams.push(filters.job_nature);
       }
 
+      // experience type filter
+      if (filters.experience_type) {
+        whereClauses.push(`experience_type = ?`);
+        queryParams.push(filters.experience_type);
+      }
+
+      // Company filter
+      if (filters.companies && filters.companies.length > 0) {
+        const placeholders = filters.companies.map(() => "?").join(",");
+        whereClauses.push(`company_name IN (${placeholders})`);
+        queryParams.push(...filters.companies);
+      }
+
       // Workplace location filter
       if (filters.work_location) {
         let workLocations = Array.isArray(filters.work_location)
@@ -657,6 +670,13 @@ const JobsModel = {
             queryParams.push(JSON.stringify(category));
           });
         }
+      }
+
+      // Search term filter (searches in job_title and company_name)
+      if (filters.searchTerm) {
+        const searchTerm = `%${filters.searchTerm}%`;
+        whereClauses.push(`(job_title LIKE ? OR company_name LIKE ?)`);
+        queryParams.push(searchTerm, searchTerm);
       }
 
       if (whereClauses.length > 0) {
@@ -1490,6 +1510,110 @@ const JobsModel = {
     }
   },
 
+  getHomePageStats: async () => {
+    try {
+      const [jobsCount] = await pool.query("SELECT COUNT(*) as total FROM job_post");
+      const [recruitersCount] = await pool.query("SELECT COUNT(DISTINCT company_name) as total FROM job_post");
+      const [applicationsCount] = await pool.query("SELECT COUNT(*) as total FROM applied_jobs");
+
+      return {
+        totalJobs: jobsCount[0].total,
+        totalRecruiters: recruitersCount[0].total,
+        totalApplications: applicationsCount[0].total
+      };
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
+
+  getTrendingSearches: async () => {
+    try {
+      // Get all work locations for 'Job'
+      const [jobPosts] = await pool.query(
+        "SELECT work_location FROM job_post WHERE job_nature = 'Job' AND work_location IS NOT NULL"
+      );
+      
+      const locationCounts = {};
+      jobPosts.forEach(post => {
+        try {
+          const locations = typeof post.work_location === 'string' ? JSON.parse(post.work_location) : post.work_location;
+          if (Array.isArray(locations)) {
+            locations.forEach(loc => {
+              if (loc) {
+                locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore invalid JSON
+        }
+      });
+
+      const trendingLocations = Object.entries(locationCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([location, count]) => ({ location, count }));
+
+      // Get all categories for 'Internship'
+      const [internshipPosts] = await pool.query(
+        "SELECT job_category FROM job_post WHERE job_nature = 'Internship' AND job_category IS NOT NULL"
+      );
+
+      const categoryCounts = {};
+      internshipPosts.forEach(post => {
+        try {
+          const categories = typeof post.job_category === 'string' ? JSON.parse(post.job_category) : post.job_category;
+          if (Array.isArray(categories)) {
+            categories.forEach(cat => {
+              if (cat) {
+                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore invalid JSON
+        }
+      });
+
+      const trendingCategories = Object.entries(categoryCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 2)
+        .map(([category, count]) => ({ category, count }));
+
+      const trending = [];
+      
+      trendingLocations.forEach(item => {
+        trending.push({
+          label: `jobs, ${item.location}`,
+          count: item.count,
+          isNew: true
+        });
+      });
+
+      trendingCategories.forEach(item => {
+        trending.push({
+          label: `internship, ${item.category}`,
+          count: item.count,
+          isNew: true
+        });
+      });
+
+      return trending;
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
+
+  getUniqueCompanies: async () => {
+    try {
+      const [companies] = await pool.query(
+        "SELECT DISTINCT company_name FROM job_post WHERE company_name IS NOT NULL AND company_name != '' ORDER BY company_name"
+      );
+      return companies.map(c => c.company_name);
+    } catch (error) {
+      throw new Error(error.message);
+    }
+  },
 };
 
 module.exports = JobsModel;

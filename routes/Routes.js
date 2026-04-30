@@ -189,11 +189,10 @@ router.put(
 router.post("/dailyStreak", LoginController.dailyStreak);
 router.get("/getDailyStreak", LoginController.getDailyStreak);
 router.put("/changePassword", verifyToken, LoginController.changePassword);
-router.get(
-  "/getAppliedCandidatesCount",
-  verifyToken,
-  JobsController.getAppliedCandidatesCount
-);
+router.get("/getAppliedCandidatesCount", verifyToken, JobsController.getAppliedCandidatesCount);
+router.get("/getHomePageStats", JobsController.getHomePageStats);
+router.get("/getTrendingSearches", JobsController.getTrendingSearches);
+router.get("/getUniqueCompanies", JobsController.getUniqueCompanies);
 router.get("/StatsOfPost", verifyToken, JobsController.StatsOfPost);
 router.get("/getLocations", JobsController.getLocations);
 router.get(

@@ -446,6 +446,9 @@ const getJobPosts = async (request, response) => {
   if (Array.isArray(body.workplace_type) && body.workplace_type.length > 0) filters.workplace_type = body.workplace_type;
   if (Array.isArray(body.work_location) && body.work_location.length > 0) filters.work_location = body.work_location;
   if (Array.isArray(body.job_categories) && body.job_categories.length > 0) filters.job_categories = body.job_categories;
+  if (body.experience_type) filters.experience_type = body.experience_type;
+  if (body.searchTerm) filters.searchTerm = body.searchTerm;
+  if (Array.isArray(body.companies) && body.companies.length > 0) filters.companies = body.companies;
 
   try {
     const posts = await JobsModel.getJobPosts(filters);
@@ -1091,6 +1094,51 @@ const getAllAppliedCandidates = async (request, response) => {
   }
 };
 
+const getHomePageStats = async (request, response) => {
+  try {
+    const stats = await JobsModel.getHomePageStats();
+    response.status(200).send({
+      message: "Home page stats fetched successfully",
+      data: stats,
+    });
+  } catch (error) {
+    response.status(500).json({
+      message: "Error while fetching home page stats",
+      details: error.message,
+    });
+  }
+};
+
+const getTrendingSearches = async (request, response) => {
+  try {
+    const trending = await JobsModel.getTrendingSearches();
+    response.status(200).send({
+      message: "Trending searches fetched successfully",
+      data: trending,
+    });
+  } catch (error) {
+    response.status(500).json({
+      message: "Error while fetching trending searches",
+      details: error.message,
+    });
+  }
+};
+
+const getUniqueCompanies = async (request, response) => {
+  try {
+    const companies = await JobsModel.getUniqueCompanies();
+    response.status(200).send({
+      message: "Companies fetched successfully",
+      data: companies,
+    });
+  } catch (error) {
+    response.status(500).json({
+      message: "Error while fetching companies",
+      details: error.message,
+    });
+  }
+};
+
 module.exports = {
   insertJobNature,
   getJobNature,
@@ -1143,4 +1191,7 @@ module.exports = {
   StatsOfPost,
   getAllCandidateByRecruiter,
   getAllAppliedCandidates,
+  getHomePageStats,
+  getTrendingSearches,
+  getUniqueCompanies,
 };

@@ -13,32 +13,47 @@ try {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
   });
+
+  // Wrap messaging to handle potential credential errors during runtime
+  const originalMessaging = admin.messaging;
+  admin.messaging = function() {
+    const msging = originalMessaging.apply(this, arguments);
+    return {
+      send: async (msg) => {
+        try { return await msging.send(msg); }
+        catch (err) {
+          console.error("⚠️ Firebase send() error:", err.message);
+          return null;
+        }
+      },
+      subscribeToTopic: async (token, topic) => {
+        try { return await msging.subscribeToTopic(token, topic); }
+        catch (err) {
+          console.error(`⚠️ Firebase subscribeToTopic(${topic}) error:`, err.message);
+          return { success: false, message: err.message };
+        }
+      },
+      unsubscribeFromTopic: async (token, topic) => {
+        try { return await msging.unsubscribeFromTopic(token, topic); }
+        catch (err) {
+          console.error(`⚠️ Firebase unsubscribeFromTopic(${topic}) error:`, err.message);
+          return { success: false, message: err.message };
+        }
+      }
+    };
+  };
+
   console.log("✅ Firebase Admin Initialized");
 } catch (error) {
   console.warn("⚠️ Firebase Service Account Not Found or Invalid. Firebase features will be disabled.");
   console.warn("Error details:", error.message);
 
   // Mock messaging and other used features to prevent server crashes
-  if (!admin.apps.length) {
-    // We don't initialize because we don't have credentials
-    // But we can patch the admin object to avoid crashes on method calls
+  if (!admin.apps.length || !admin.messaging) {
     admin.messaging = () => ({
-      send: async (msg) => {
-        console.warn("⚠️ Firebase messaging.send() called but Firebase is not initialized.");
-        return null;
-      },
-      sendToDevice: async () => {
-        console.warn("⚠️ Firebase sendToDevice() called but Firebase is not initialized.");
-        return null;
-      },
-      subscribeToTopic: async (token, topic) => {
-        console.warn(`⚠️ Firebase subscribeToTopic(${topic}) called but Firebase is not initialized.`);
-        return { success: false, message: "Firebase not initialized" };
-      },
-      unsubscribeFromTopic: async (token, topic) => {
-        console.warn(`⚠️ Firebase unsubscribeFromTopic(${topic}) called but Firebase is not initialized.`);
-        return { success: false, message: "Firebase not initialized" };
-      }
+      send: async () => { console.warn("⚠️ Firebase disabled"); return null; },
+      subscribeToTopic: async () => { console.warn("⚠️ Firebase disabled"); return { success: false }; },
+      unsubscribeFromTopic: async () => { console.warn("⚠️ Firebase disabled"); return { success: false }; }
     });
   }
 }

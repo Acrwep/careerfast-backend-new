@@ -5,7 +5,7 @@ const pool = require("../config/dbConfig");
 // =============================
 exports.addBlog = async (req, res) => {
     try {
-        const { blogTitle, overview, blogImage, author, readingTime, blogDescription } = req.body;
+        const { blogTitle, overview, blogImage, author, readingTime, blogDescription, userId } = req.body;
 
         if (!blogTitle || !overview || !blogDescription || !blogImage) {
             return res.status(400).json({ message: "Missing required fields" });
@@ -20,8 +20,8 @@ exports.addBlog = async (req, res) => {
 
         const sql = `
     INSERT INTO blogs 
-    (blogTitle, overview, blogImage, author, readingTime, blogDescription) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    (blogTitle, overview, blogImage, author, readingTime, blogDescription, userId) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
 `;
 
         const [result] = await pool.execute(sql, [
@@ -31,6 +31,7 @@ exports.addBlog = async (req, res) => {
             author,
             readingTime,
             blogDescription,
+            userId,
         ]);
 
         return res.status(200).json({
