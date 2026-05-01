@@ -128,13 +128,24 @@ exports.getBlogById = async (req, res) => {
 // =============================
 exports.deleteBlog = async (req, res) => {
     try {
+        const { id } = req.params;
+        console.log(`🗑 Request to delete blog ID: ${id}`);
+        
         const sql = `DELETE FROM blogs WHERE id = ?`;
-        await pool.execute(sql, [req.params.id]);
+        const [result] = await pool.execute(sql, [id]);
+
+        console.log("✅ Delete result:", result);
+
+        if (result.affectedRows === 0) {
+            console.warn(`⚠️ No blog found with ID: ${id}`);
+            return res.status(404).json({ message: "Blog not found" });
+        }
 
         return res.status(200).json({ message: "Blog deleted successfully" });
 
     } catch (error) {
-        console.error("Error deleting blog:", error);
+        console.error("❌ Error deleting blog:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };
+
